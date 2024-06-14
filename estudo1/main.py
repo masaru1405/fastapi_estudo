@@ -32,13 +32,29 @@ def  car_by_id(id: int) -> dict:
    else:
       raise HTTPException(status_code=404, detail=f"No car with id={id}")
 
-@app.post('/api/cars/')
+#response_model é um argumento do decorator e não da função. FastAPI irá fazer a validação da saída e fará a conversão quando necessário.
+#OBS: def nomeFuncao(argumentos) -> tipoDeSaida; o FastAPI não utiliza o type hint de saída da função (neste caso especificado como 'tipoDeSaida')
+@app.post('/api/cars/', response_model=CarOutput)
 def add_car(car: CarInput) -> CarOutput:
    new_car = CarOutput(size=car.size, doors=car.doors, fuel=car.fuel, transmission=car.transmission, id=len(db)+1)
    
    db.append(new_car) 
    save_db(db)
    return new_car
+
+@app.put('/api/cars/{id}', response_model=CarOutput)
+def change_car(id: int, new_data: CarInput) -> CarOutput:
+   matches = [car for car in db if car.id == id]
+   if matches:
+      car = matches[0]
+      car.fuel = new_data.fuel
+      car.transmission = new_data.transmission
+      car.size = new_data.size
+      car.doors = new_data.doors
+      save_db(db)
+      return car
+   else:
+      return HTTPException(status_code=404, detail=f"No car with id={id}")
 
 @app.delete('/api/cars/{id}', status_code=204)
 def remove_car(id: int) -> None:
